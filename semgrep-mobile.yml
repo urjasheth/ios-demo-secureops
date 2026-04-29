@@ -1,0 +1,77 @@
+rules:
+  # ─────────────────────────────────────────────────────────
+  # ANDROID — Insecure File Storage
+  # ─────────────────────────────────────────────────────────
+  - id: android-world-readable
+    patterns:
+      - pattern: openFileOutput($FILENAME, MODE_WORLD_READABLE)
+    message: >
+      MODE_WORLD_READABLE allows any app to read this file.
+      Use MODE_PRIVATE instead.
+    languages: [java, kotlin]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "M2: Insecure Data Storage"
+      fix: "Replace MODE_WORLD_READABLE with MODE_PRIVATE"
+
+  # ─────────────────────────────────────────────────────────
+  # ANDROID — Hardcoded API Endpoints
+  # ─────────────────────────────────────────────────────────
+  - id: android-hardcoded-api-url
+    pattern: |
+      $URL = "http://..."
+    message: >
+      Hardcoded HTTP URL detected. Use HTTPS and load URLs from
+      BuildConfig or environment variables.
+    languages: [java, kotlin]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "M3: Insecure Communication"
+
+  # ─────────────────────────────────────────────────────────
+  # iOS — NSLog Exposure
+  # ─────────────────────────────────────────────────────────
+  - id: ios-nslog-sensitive
+    pattern: NSLog($FORMAT, ...)
+    message: >
+      NSLog output is visible in device console logs, which can expose
+      sensitive data. Use os_log with .private for sensitive values.
+    languages: [swift]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "M9: Reverse Engineering"
+      fix: "Use os_log(.info, \"Message: %{private}@\", value)"
+
+  # ─────────────────────────────────────────────────────────
+  # FLUTTER / DART — Insecure Random
+  # ─────────────────────────────────────────────────────────
+  - id: dart-insecure-random
+    pattern: Random()
+    message: >
+      Standard Random() is NOT cryptographically secure.
+      Use Random.secure() for tokens, keys, and nonces.
+    languages: [dart]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-338: Use of Cryptographically Weak PRNG"
+      fix: "Replace Random() with Random.secure()"
+
+  # ─────────────────────────────────────────────────────────
+  # FLUTTER / DART — Non-HTTPS URL
+  # ─────────────────────────────────────────────────────────
+  - id: dart-http-url
+    pattern: |
+      "http://..."
+    message: >
+      Non-HTTPS URL detected. All network communication should use HTTPS
+      to prevent man-in-the-middle attacks.
+    languages: [dart]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "M3: Insecure Communication"
+      fix: "Change http:// to https://"

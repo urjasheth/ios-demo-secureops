@@ -1,0 +1,85 @@
+# ============================================================
+# SecurOps Hybrid — Company-Wide Security Hooks
+# File: .pre-commit-config.yaml
+# Source: Approach B (8 hooks) + Approach A (semgrep-mobile)
+# DO NOT modify without Security Team approval
+# ============================================================
+
+repos:
+  # ─────────────────────────────────────────────────────────
+  # 1. SECRET SCANNING - Gitleaks (Fast, 130+ patterns)
+  #    Blocks: AWS keys, GitHub tokens, Stripe keys, etc.
+  # ─────────────────────────────────────────────────────────
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+        name: "🔐 Secret Scanner (Gitleaks)"
+        description: "Blocks secrets before they reach git"
+        entry: gitleaks protect --verbose --redact --staged --config .gitleaks.toml
+        language: golang
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ─────────────────────────────────────────────────────────
+  # 2. SAST SCANNING - Semgrep (Generic + Mobile rules)
+  #    Blocks: OWASP Top 10, SQL Injection, XSS, etc.
+  #    Includes: Android, iOS, Flutter mobile-specific rules
+  # ─────────────────────────────────────────────────────────
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.52.0
+    hooks:
+      - id: semgrep
+        name: "🔍 Code Security Scanner (Semgrep)"
+        description: "Scans for OWASP Top 10 + mobile vulnerabilities"
+        args:
+          - --config=auto
+          - --config=p/owasp-top-ten
+          - --config=p/security-audit
+          - --config=semgrep-mobile.yml
+          - --severity=ERROR
+          - --quiet
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ─────────────────────────────────────────────────────────
+  # 3. DEPENDENCY SCANNING - Trivy (runs on push, not commit)
+  #    Blocks: Known CVEs in dependencies
+  # ─────────────────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: trivy-scan
+        name: "🛡️ Dependency Scanner (Trivy)"
+        description: "Scans dependencies for known CVEs"
+        entry: bash scripts/trivy-scan.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  # ─────────────────────────────────────────────────────────
+  # 4. BASIC SAFETY CHECKS
+  #    Blocks: Private keys, merge conflicts, large files
+  # ─────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: detect-private-key
+        name: "🔑 Private Key Detector"
+        exclude: '\.gitleaks\.toml$'
+      - id: check-merge-conflict
+        name: "🔀 Merge Conflict Checker"
+      - id: check-added-large-files
+        name: "📏 Large File Checker"
+        args: ['--maxkb=1000']
+      - id: check-yaml
+        name: "✅ YAML Validator"
+      - id: check-json
+        name: "✅ JSON Validator"
+      - id: end-of-file-fixer
+        name: "📝 End of File Fixer"
+
+# ─────────────────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────────────────
+default_install_hook_types: [pre-commit, pre-push]
+fail_fast: true
